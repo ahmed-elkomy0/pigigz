@@ -12,10 +12,16 @@
 
 - `client/` — واجهة React (المخرجات الجاهزة للنشر في `client/dist`)
 - `server/` — أكشنز السيرفر وقاعدة بيانات SQLite (الطلبات، الدفع، الضمان)
+- `server/src/vercel-entry.ts` + `server/gen-vercel.mjs` — تشغيل نفس
+  الأكشنز على Vercel: البناء بيولّد `.vercel/output` (بصيغة Vercel Build
+  Output API) فيه الموقع الثابت ودالة سيرفر (Serverless Function) بترد
+  على `POST /actions` وبتشغّل نفس الأكشنز ونفس معالجات دفع Pi، وقاعدة
+  البيانات على libSQL مستضافة (Turso)
 - `vendor/space-sdk.tgz` — نسخة مضمّنة من حزمة `@hatch/space-sdk` جوه
   المشروع نفسه، فالتثبيت (`bun install`) يشتغل في أي مكان من غير أي مسار
   محلي على جهاز معيّن
-- `vercel.json` — إعدادات البناء والتشغيل والهيدرز على Vercel
+- `vercel.json` — إعدادات البناء على Vercel (الهيدرز والراوتس بتتولّد
+  جوه `.vercel/output/config.json` وقت البناء)
 - `.env.example` — أسماء متغيرات البيئة المطلوبة على السيرفر (من غير قيم)
 
 ## متغيرات البيئة المطلوبة على السيرفر
@@ -24,11 +30,18 @@
 | --- | --- | --- |
 | `PI_NETWORK_API_KEY` | مفتاح سيرفر التطبيق: الموافقة على دفع العميل وإتمامه، وإنشاء دفعات التطبيق للفريلانسر | Pi Developer Portal ← تطبيق PiGigz ← Settings ← API key (بيظهر كامل مرة واحدة بس لما يتولّد) |
 | `PI_WALLET_SEED` | سر محفظة التطبيق (بيبدأ بحرف `S`): توقيع معاملة دفع الفريلانسر على بلوكتشين Pi Testnet | إعداد محفظة التطبيق (App Wallet) في Pi Developer Portal |
+| `TURSO_DATABASE_URL` | عنوان قاعدة بيانات libSQL المستضافة اللي السوق بيخزّن فيها بياناته على Vercel (بصيغة `libsql://…`) | حساب مجاني على [Turso](https://turso.tech): اعمل Database وانسخ الـ URL بتاعها |
+| `TURSO_AUTH_TOKEN` | توكن الوصول لقاعدة بيانات Turso | من صفحة نفس قاعدة البيانات في Turso (Create Token) |
 
 - المتغيرات دي سرية: بتتحط في إعدادات الاستضافة بس، وممنوع تتحط في الكود أو
   في أي ملف بيترفع على GitHub (ملف `.env.example` فيه الأسماء بس).
-- طول ما المتغيرات مش محطوطة، التطبيق بيشتغل بمحاكاة Testnet موضّحة في
+- طول ما متغيرات Pi مش محطوطة، التطبيق بيشتغل بمحاكاة Testnet موضّحة في
   الواجهة، وبيتحوّل للدفع الحقيقي تلقائيًا أول ما تتحط.
+- قاعدة البيانات على Vercel لازم تكون مستضافة: دوال Vercel المؤقتة
+  (Serverless) مفيهاش ديسك دائم، فمن غير `TURSO_DATABASE_URL` الدالة
+  بتستخدم ملف مؤقت جوه نسختها — الموقع هيفتح ويشتغل للتجربة، لكن
+  البيانات مش دائمة وبتختلف من نسخة دالة للتانية. حط متغيرات Turso
+  عشان البيانات تفضل محفوظة بجد.
 
 ## خطوات النشر على Vercel من GitHub
 
@@ -40,11 +53,13 @@
 3. إعدادات البناء بتتقرأ تلقائيًا من `vercel.json`، متغيّرش حاجة:
    - Install Command: `bun install`
    - Build Command: `bun run build`
-   - Output Directory: `client/dist`
+   - الـ Output مش مجلد ثابت: البناء بيولّد `.vercel/output` كامل
+     (الموقع + دالة `/actions`)، فسيب أي إعداد Output على افتراضيته.
 4. قبل أول Deploy، ضيف متغيرات البيئة: من صفحة المشروع روح
-   **Settings → Environment Variables** وضيف `PI_NETWORK_API_KEY` و
-   `PI_WALLET_SEED` (اختار Production و Preview)، بالقيم اللي معاك من
-   Pi Developer Portal. متكتبهومش في أي مكان تاني.
+   **Settings → Environment Variables** وضيف الأربعة (اختار Production
+   و Preview): `PI_NETWORK_API_KEY` و `PI_WALLET_SEED` بالقيم اللي معاك
+   من Pi Developer Portal، و `TURSO_DATABASE_URL` و `TURSO_AUTH_TOKEN`
+   من قاعدة بيانات Turso اللي عملتها. متكتبهومش في أي مكان تاني.
 5. دوس **Deploy** واستنى البناء يخلص، وبعدها هتاخد دومين عام بصيغة
    `https://<project>.vercel.app`.
 6. اربط الدومين بـ Pi: في Pi Developer Portal ← تطبيق PiGigz، حدّث حقل
@@ -56,8 +71,8 @@
 
 ## الأمان والتضمين داخل Pi
 
-ملف `vercel.json` بيضيف هيدر `Content-Security-Policy` مضبوط على احتياجات
-التطبيق:
+البناء بيولّد هيدر `Content-Security-Policy` في
+`.vercel/output/config.json` مضبوط على احتياجات التطبيق:
 
 - `frame-ancestors` بيسمح بالتضمين من `sandbox.minepi.com` ودومينات
   `minepi.com` بس، عشان التطبيق يشتغل جوه Pi Sandbox و Pi Browser ومحدش
@@ -68,7 +83,10 @@
 
 ## ملحوظة عن التشغيل
 
-واجهة التطبيق بتتنشر من `client/dist` بهيدرز الأمان اللي فوق. أكشنز السيرفر
-وقاعدة البيانات لازم يشتغلوا على سيرفر يقدر يحط متغيرات البيئة اللي فوق؛
-على Vercel بتتحط من **Settings → Environment Variables** زي ما هو موضّح في
-الخطوة 4.
+من غير دالة سيرفر، الموقع الثابت بيفتح لكن كل طلب `POST /actions` بيرجع
+404 والتطبيق بيظهر «حصلت مشكلة في التحميل» — عشان كده البناء بيولّد
+دالة Vercel باسم `actions` وبيوجّه لها أي طلب `/actions` قبل ما يخدم
+الملفات الثابتة. الدالة بتشغّل نفس كود السيرفر بالكامل: السوق، الضمان،
+الشات، طلبات الشغل، المحفظة، والدفع الحقيقي لما مفاتيح Pi موجودة في
+متغيرات البيئة (والدالة بتقرأ نفس أسماء المتغيرات
+`PI_NETWORK_API_KEY` / `PI_WALLET_SEED` من إعدادات Vercel مباشرة).
