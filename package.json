@@ -10,7 +10,7 @@
     "build:client": "bun ./client/build.mjs"
   },
   "dependencies": {
-    "@hatch/space-sdk": "file:/opt/hatch/skills/spaces/ts-runtime/dist/space-sdk.tgz",
+    "@hatch/space-sdk": "file:./vendor/space-sdk.tgz",
     "@stellar/stellar-sdk": "^17.4.0",
     "@tanstack/react-query": "5.100.10",
     "drizzle-orm": "0.45.2",
@@ -22,6 +22,7 @@
   },
   "devDependencies": {
     "@types/bun": "1.4.2",
+    "bun-plugin-tailwind": "0.0.15",
     "@types/react": "19.2.14",
     "@types/react-dom": "19.2.3",
     "@types/three": "^0.187.0",
