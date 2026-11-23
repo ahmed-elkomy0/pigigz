@@ -87,6 +87,10 @@ const ar = {
     "Pi SDK مش متاح هنا. افتح PiGigz من جوه Pi Browser وسجّل دخولك.",
   loginErrorGeneric:
     "الدخول مكمّلش. اتأكد إنك فاتح من Pi Browser ومسجّل دخول بحساب Pi، ووافق على طلب الدخول.",
+  pinetNote:
+    "تنبيه: إنت فاتح التطبيق من لينك PiNet (app5122.pinet.com)، ودي بيئة عرض محدودة من Pi — الدخول والدفع بـ Pi مش بيكملوا منها. عشان تدخل بجد: افتح Pi Browser واكتب عنوان التطبيق ده في شريط العنوان: pigigz-pqzk.vercel.app وبعدين دوس «الدخول بحساب Pi» من هناك.",
+  loginErrorPinet:
+    "Pi نفسه رفض الدخول برسالة «Authentication failed»: لينك PiNet مش بيكمّل تسجيل الدخول. افتح Pi Browser واكتب عنوان التطبيق pigigz-pqzk.vercel.app في شريط العنوان، وجرّب الدخول من هناك.",
   logoAltHeader:
     "لوجو PiGigz الرسمي: فريلانسر قاعد على لابتوب وحوله كروت خدمات نازلة عليه",
   logoAltHero:
@@ -448,6 +452,10 @@ const en: Dict = {
   loginErrorSdk: "The Pi SDK isn't available here. Open PiGigz inside Pi Browser and log in.",
   loginErrorGeneric:
     "Login didn't complete. Make sure you're in Pi Browser, signed in to Pi, and approve the login request.",
+  pinetNote:
+    "Note: you opened the app through the PiNet link (app5122.pinet.com), a limited preview environment from Pi — Pi sign-in and payments don't complete from it. To sign in for real: open Pi Browser, type this app address into the address bar: pigigz-pqzk.vercel.app, then tap “Log in with Pi” there.",
+  loginErrorPinet:
+    "Pi itself rejected the sign-in (“Authentication failed”): the PiNet link can't complete login. Open Pi Browser, type the app address pigigz-pqzk.vercel.app into the address bar, and sign in from there.",
   logoAltHeader: "The official PiGigz logo: a freelancer at a laptop with gig cards falling onto it",
   logoAltHero:
     "The official PiGigz logo: a freelancer at a golden laptop surrounded by service cards — design, translation, video editing and marketing — in dark plum and gold",
@@ -845,17 +853,14 @@ const PI_SCOPES = ["username", "payments", "wallet_address"];
  * Whether this page is running inside the Pi Sandbox web app
  * (sandbox.minepi.com), which embeds the app in a frame for testing.
  *
- * Pi.init's `sandbox` flag must match the real environment (Pi docs:
- * "use sandbox: false in production" / sandbox mode is for testing
- * outside Pi Browser). With sandbox:true hardcoded, opening the app the
- * normal way in Pi Browser — via its PiNet subdomain or registered
- * frontend URL — still showed the consent sheet, but the access token
- * Pi returned belonged to the Sandbox environment, so the server's
- * verification against the real Pi Platform API (GET /v2/me) rejected
- * it and login silently never completed after the user approved.
- * Sandbox mode is now enabled only when the Sandbox is actually the
- * embedding page, so both entry points work: Pi Browser / PiNet with
- * sandbox:false, and the Sandbox test link with sandbox:true.
+ * Pi docs say sandbox mode is only for testing outside Pi Browser
+ * ("use sandbox: false in production"). Reading the current pi-sdk.js
+ * source shows this SDK version actually auto-detects sandbox mode
+ * itself — from an ancestor origin of sandbox.minepi.com or a
+ * ?sandbox=true query param — and never reads the init flag; we still
+ * pass the detected value so the init call stays truthful in every
+ * environment: the Sandbox test link gets sandbox:true, everything
+ * else (Pi Browser direct, PiNet) gets sandbox:false.
  */
 function detectPiSandbox(): boolean {
   try {
@@ -868,6 +873,40 @@ function detectPiSandbox(): boolean {
   }
   try {
     if (document.referrer.includes("sandbox.minepi.com")) return true;
+  } catch {
+    /* referrer unavailable */
+  }
+  return false;
+}
+
+/**
+ * Whether this page is framed by PiNet (app5122.pinet.com) — Pi's public
+ * web gateway, which embeds the app's registered frontend URL in an
+ * iframe. PiNet is a limited preview environment, not the full Pi Browser
+ * app shell: the Pi SDK itself refuses payments there
+ * (Pi.createPayment throws "Method unsupported in PiNet"), and for this
+ * Testnet app Pi.authenticate also dies there — after the user approves
+ * the consent sheet, the SDK's own validation call (GET /v2/me against
+ * the host-supplied backend URL, inside Pi.authenticate, before this
+ * app's server is ever contacted) fails and the SDK rejects with
+ * "Authentication failed.". The working path is the standard one every
+ * Pi app uses: open the app's own frontend address directly inside
+ * Pi Browser, where the native app shell hosts the SDK bridge. The UI
+ * detects PiNet framing (same signals the SDK uses: ancestor origins /
+ * referrer) and tells the user exactly that, instead of leaving them
+ * with Pi's raw error.
+ */
+function detectPiNet(): boolean {
+  try {
+    const ancestors = window.location.ancestorOrigins;
+    for (let i = 0; i < ancestors.length; i++) {
+      if (ancestors[i]?.includes("pinet.com")) return true;
+    }
+  } catch {
+    /* ancestorOrigins unavailable in this webview */
+  }
+  try {
+    if (document.referrer.includes("pinet.com")) return true;
   } catch {
     /* referrer unavailable */
   }
@@ -1025,6 +1064,7 @@ function runRealPiPayment(opts: {
 type LoginGateProps = {
   sdkReady: boolean;
   inPiBrowser: boolean;
+  inPiNet: boolean;
   loginBusy: boolean;
   loginError: string | null;
   incompletePaymentId: string | null;
@@ -1035,6 +1075,7 @@ function LoginGate({
   actionLabel,
   sdkReady,
   inPiBrowser,
+  inPiNet,
   loginBusy,
   loginError,
   incompletePaymentId,
@@ -1047,6 +1088,11 @@ function LoginGate({
       <p className="mx-auto mt-1 max-w-md text-sm leading-relaxed text-[var(--dim)]">
         {t.gateBody(actionLabel)}
       </p>
+      {inPiNet && (
+        <p className="mx-auto mt-3 max-w-md rounded-xl bg-[var(--surface)] p-3 text-start text-sm font-semibold leading-relaxed">
+          {t.pinetNote}
+        </p>
+      )}
       {inPiBrowser ? (
         <>
           <button
@@ -1191,6 +1237,7 @@ export function App() {
   const [profile, setProfile] = useState<ApiResponse<typeof api, "piLogin"> | null>(null);
   const [sdkReady, setSdkReady] = useState(false);
   const [inPiBrowser, setInPiBrowser] = useState(false);
+  const [inPiNet, setInPiNet] = useState(false);
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
   const [incompletePaymentId, setIncompletePaymentId] = useState<string | null>(null);
@@ -1213,6 +1260,7 @@ export function App() {
 
   useEffect(() => {
     setInPiBrowser(/PiBrowser/i.test(window.navigator.userAgent));
+    setInPiNet(detectPiNet());
     let cancelled = false;
     let tries = 0;
     const timer = window.setInterval(() => {
@@ -1278,8 +1326,15 @@ export function App() {
       // Show the underlying reason (the server's own Arabic message, or
       // the Pi SDK's error) next to the generic text, so a failed login
       // says exactly what went wrong instead of just "didn't complete".
+      // Special case: the SDK's "Authentication failed." while framed by
+      // PiNet means Pi's gateway environment rejected the flow itself —
+      // point the user at the app's own address inside Pi Browser.
       const detail = e instanceof Error && e.message ? e.message : "";
-      setLoginError(detail ? `${t.loginErrorGeneric} (${detail})` : t.loginErrorGeneric);
+      if (inPiNet && detail.includes("Authentication failed")) {
+        setLoginError(t.loginErrorPinet);
+      } else {
+        setLoginError(detail ? `${t.loginErrorGeneric} (${detail})` : t.loginErrorGeneric);
+      }
     } finally {
       setLoginBusy(false);
     }
@@ -1321,6 +1376,7 @@ export function App() {
   const loginGateProps: LoginGateProps = {
     sdkReady,
     inPiBrowser,
+    inPiNet,
     loginBusy,
     loginError,
     incompletePaymentId,
@@ -1432,6 +1488,11 @@ export function App() {
                 </>
               )}
             </div>
+            {inPiNet && !session && (
+              <p className="pb-1 text-sm font-semibold leading-relaxed text-[#ffe1a8]">
+                {t.pinetNote}
+              </p>
+            )}
             {loginError && !session && (
               <p role="alert" className="pb-1 text-sm font-semibold text-[#ffb4a2]">
                 {loginError}
