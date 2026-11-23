@@ -841,6 +841,39 @@ type PiSdk = {
 /** Scopes requested at Pi login; wallet_address lets the app pay the user back (app_to_user payouts). */
 const PI_SCOPES = ["username", "payments", "wallet_address"];
 
+/**
+ * Whether this page is running inside the Pi Sandbox web app
+ * (sandbox.minepi.com), which embeds the app in a frame for testing.
+ *
+ * Pi.init's `sandbox` flag must match the real environment (Pi docs:
+ * "use sandbox: false in production" / sandbox mode is for testing
+ * outside Pi Browser). With sandbox:true hardcoded, opening the app the
+ * normal way in Pi Browser — via its PiNet subdomain or registered
+ * frontend URL — still showed the consent sheet, but the access token
+ * Pi returned belonged to the Sandbox environment, so the server's
+ * verification against the real Pi Platform API (GET /v2/me) rejected
+ * it and login silently never completed after the user approved.
+ * Sandbox mode is now enabled only when the Sandbox is actually the
+ * embedding page, so both entry points work: Pi Browser / PiNet with
+ * sandbox:false, and the Sandbox test link with sandbox:true.
+ */
+function detectPiSandbox(): boolean {
+  try {
+    const ancestors = window.location.ancestorOrigins;
+    for (let i = 0; i < ancestors.length; i++) {
+      if (ancestors[i]?.includes("sandbox.minepi.com")) return true;
+    }
+  } catch {
+    /* ancestorOrigins unavailable in this webview */
+  }
+  try {
+    if (document.referrer.includes("sandbox.minepi.com")) return true;
+  } catch {
+    /* referrer unavailable */
+  }
+  return false;
+}
+
 declare global {
   interface Window {
     Pi?: PiSdk;
@@ -1187,7 +1220,7 @@ export function App() {
       if (window.Pi) {
         window.clearInterval(timer);
         try {
-          window.Pi.init({ version: "2.0", sandbox: true });
+          window.Pi.init({ version: "2.0", sandbox: detectPiSandbox() });
         } catch {
           /* already initialised */
         }
@@ -1241,8 +1274,12 @@ export function App() {
       setProfile(p);
       void queryClient.invalidateQueries({ queryKey: ["gigs"] });
       void queryClient.invalidateQueries({ queryKey: ["orders"] });
-    } catch {
-      setLoginError(t.loginErrorGeneric);
+    } catch (e) {
+      // Show the underlying reason (the server's own Arabic message, or
+      // the Pi SDK's error) next to the generic text, so a failed login
+      // says exactly what went wrong instead of just "didn't complete".
+      const detail = e instanceof Error && e.message ? e.message : "";
+      setLoginError(detail ? `${t.loginErrorGeneric} (${detail})` : t.loginErrorGeneric);
     } finally {
       setLoginBusy(false);
     }
