@@ -8,7 +8,7 @@
 // The platform version compiled in as __HATCH_SPACE_PLATFORM_VERSION__
 // is read from space.json when present (the SDK client runtime checks it).
 
-import { cp, readFile, rm } from "node:fs/promises";
+import { cp, readFile, rm, stat } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import tailwindPlugin from "bun-plugin-tailwind";
@@ -77,6 +77,17 @@ for (const output of result.outputs) {
   if (changed) {
     await Bun.write(output.path, text);
   }
+}
+
+// Static public files (client/public/*) are copied verbatim to the output
+// root so they are served at their exact paths. This carries
+// validation-key.txt — the plain-text key the Pi Developer Portal fetches
+// from /validation-key.txt to verify domain ownership. gen-vercel.mjs
+// copies all of client/dist into the Vercel static output, and its
+// filesystem route serves the file before the SPA fallback.
+const PUBLIC_DIR = "./client/public";
+if (await stat(PUBLIC_DIR).then((s) => s.isDirectory()).catch(() => false)) {
+  await cp(PUBLIC_DIR, OUTDIR, { recursive: true });
 }
 
 if (needsPdfjsAssets) {
