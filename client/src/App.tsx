@@ -80,17 +80,24 @@ const ar = {
     `خدماتي ${g} · اشتريت ${b} · بعت ${s}`,
   loginHintPi: "ادخل بحساب Pi عشان تنشر خدمات وتطلب باسمك.",
   loginHintWeb:
-    "الدخول الحقيقي بيشتغل من جوه Pi Browser — التصفح شغال من أي متصفح.",
+    "الدخول الحقيقي بيكمل من بيئة Pi الخاصة بالتطبيق (الـ Sandbox طول ما التطبيق على Testnet) — التصفح شغال من أي متصفح.",
+  loginHintSandbox:
+    "إنت في بيئة Pi Sandbox (تجربة Testnet) — الدخول بحساب Pi بيشتغل من هنا.",
   incompletePayment: (id: string) =>
     `عندك دفعة قديمة غير مكتملة على حسابك (رقمها ${id}) — هتتكمل أو تتلغي يدويًا.`,
   loginErrorSdk:
-    "Pi SDK مش متاح هنا. افتح PiGigz من جوه Pi Browser وسجّل دخولك.",
+    "Pi SDK مش متاح هنا. افتح PiGigz من بيئة Pi (الـ Sandbox للتجربة) وسجّل دخولك.",
   loginErrorGeneric:
-    "الدخول مكمّلش. اتأكد إنك فاتح من Pi Browser ومسجّل دخول بحساب Pi، ووافق على طلب الدخول.",
+    "الدخول مكمّلش. اتأكد إنك فاتح من بيئة Pi الخاصة بالتطبيق (الـ Sandbox طول ما التطبيق على Testnet) ومسجّل دخول بحساب Pi، ووافق على طلب الدخول.",
   pinetNote:
-    "تنبيه: إنت فاتح التطبيق من لينك PiNet (app5122.pinet.com)، ودي بيئة عرض محدودة من Pi — الدخول والدفع بـ Pi مش بيكملوا منها. عشان تدخل بجد: افتح Pi Browser واكتب عنوان التطبيق ده في شريط العنوان: pigigz-pqzk.vercel.app وبعدين دوس «الدخول بحساب Pi» من هناك.",
+    "تنبيه: إنت فاتح التطبيق من لينك PiNet (app5122.pinet.com)، ودي بيئة عرض محدودة من Pi — الدخول والدفع بـ Pi مش بيكملوا منها. وPiGigz لسه تطبيق Testnet، فالدخول بيه بيكمل من بيئة Pi Sandbox الرسمية للتجربة: افتح لينك الـ Sandbox بتاع التطبيق من متصفحك وسجّل دخولك من هناك.",
   loginErrorPinet:
-    "Pi نفسه رفض الدخول برسالة «Authentication failed»: لينك PiNet مش بيكمّل تسجيل الدخول. افتح Pi Browser واكتب عنوان التطبيق pigigz-pqzk.vercel.app في شريط العنوان، وجرّب الدخول من هناك.",
+    "Pi نفسه رفض الدخول برسالة «Authentication failed»: لينك PiNet مش بيكمّل تسجيل الدخول، وPiGigz تطبيق Testnet فدخوله بيكمل من بيئة Pi Sandbox الرسمية للتجربة — افتح لينك الـ Sandbox بتاع التطبيق وجرّب الدخول من هناك.",
+  sandboxNote:
+    "إنت دلوقتي في بيئة Pi Sandbox، وهي بيئة Pi الرسمية لتجربة تطبيقات Testnet زي PiGigz — الدخول بحساب Pi بيكمل من هنا. وافق على طلب الدخول وهيتم تسجيلك بحساب Pi بتاعك (Testnet).",
+  loginErrorTestnet:
+    "Pi نفسه رفض الدخول برسالة «Authentication failed». السبب: PiGigz لسه تطبيق Testnet، وقشرة Pi Browser الحية (Mainnet) مش بتكمّل دخول تطبيقات Testnet — التحقق الداخلي بتاع Pi بيفشل بعد الموافقة على الصلاحيات على طول. الدخول للتجربة بيكمل من بيئة Pi Sandbox الرسمية: افتح لينك الـ Sandbox بتاع التطبيق وسجّل دخولك من هناك.",
+  openSandbox: "افتح بيئة Pi Sandbox",
   logoAltHeader:
     "لوجو PiGigz الرسمي: فريلانسر قاعد على لابتوب وحوله كروت خدمات نازلة عليه",
   logoAltHero:
@@ -99,14 +106,14 @@ const ar = {
   gateBody: (action: string) =>
     `${action} بيتم بحساب Pi بتاعك، واسمك في Pi هو اللي بيظهر على شغلك وطلباتك — مفيش تسجيل منفصل ولا كلمة سر جديدة.`,
   gatePreparing: "بنجهّز Pi SDK…",
-  gateStepsTitle: "الدخول بيشتغل من جوه Pi Browser بس:",
+  gateStepsTitle: "الدخول بيشتغل من بيئة Pi بس:",
   gateSteps: [
-    "افتح تطبيق Pi وادخل على Pi Browser.",
-    "افتح PiGigz من هناك وانت مسجّل دخول بحسابك.",
-    "دوس «الدخول بحساب Pi» ووافق على صلاحيات الاسم والدفع وعنوان المحفظة.",
+    "PiGigz لسه تطبيق Testnet، والدخول للتجربة بيكمل من بيئة Pi Sandbox الرسمية.",
+    "افتح لينك الـ Sandbox بتاع التطبيق من المتصفح، وفعّل الـ Sandbox من تطبيق Pi (Pi Utilities ← Authorize Sandbox) لو اتطلب منك.",
+    "من جوه الـ Sandbox دوس «الدخول بحساب Pi» ووافق على صلاحيات الاسم والدفع وعنوان المحفظة.",
   ],
   gateWebNote:
-    "المتصفح العادي مفيهوش حساب Pi، فالدخول الحقيقي مش هيكمل منه — لكن التصفح والبحث شغالين عادي.",
+    "المتصفح العادي مفيهوش حساب Pi، فالدخول الحقيقي مش هيكمل منه — لكن التصفح والبحث شغالين عادي. وفتح التطبيق من Pi Browser مباشرة مش بيكمّل دخول تطبيقات Testnet؛ بيئة التجربة الرسمية هي الـ Sandbox.",
   gateIncomplete: (id: string) =>
     `عندك دفعة قديمة غير مكتملة على حسابك (رقمها ${id}) — فريق PiGigz هيكمّلها أو يلغيها يدويًا.`,
   searchLabel: "دوّر على خدمة",
@@ -446,16 +453,23 @@ const en: Dict = {
   accountUnverified: "Signed in with Pi · server verification pending",
   accountCounts: (g, b, s) => `My gigs ${g} · Bought ${b} · Sold ${s}`,
   loginHintPi: "Log in with Pi to publish gigs and order under your name.",
-  loginHintWeb: "Real login works inside Pi Browser only — browsing works in any browser.",
+  loginHintWeb:
+    "Real login completes inside Pi's own environment for this app (the Sandbox while it's on Testnet) — browsing works in any browser.",
+  loginHintSandbox: "You're in the Pi Sandbox (Testnet testing) — Pi login works from here.",
   incompletePayment: (id) =>
     `You have an old incomplete payment on your account (ID ${id}) — it will be completed or cancelled manually.`,
-  loginErrorSdk: "The Pi SDK isn't available here. Open PiGigz inside Pi Browser and log in.",
+  loginErrorSdk: "The Pi SDK isn't available here. Open PiGigz inside Pi's environment (the Sandbox, for testing) and log in.",
   loginErrorGeneric:
-    "Login didn't complete. Make sure you're in Pi Browser, signed in to Pi, and approve the login request.",
+    "Login didn't complete. Make sure you're in Pi's environment for this app (the Sandbox while it's on Testnet), signed in to Pi, and approve the login request.",
   pinetNote:
-    "Note: you opened the app through the PiNet link (app5122.pinet.com), a limited preview environment from Pi — Pi sign-in and payments don't complete from it. To sign in for real: open Pi Browser, type this app address into the address bar: pigigz-pqzk.vercel.app, then tap “Log in with Pi” there.",
+    "Note: you opened the app through the PiNet link (app5122.pinet.com), a limited preview environment from Pi — Pi sign-in and payments don't complete from it. PiGigz is still a Testnet app, so its sign-in completes in Pi's official Pi Sandbox test environment: open the app's Sandbox link in your browser and sign in there.",
   loginErrorPinet:
-    "Pi itself rejected the sign-in (“Authentication failed”): the PiNet link can't complete login. Open Pi Browser, type the app address pigigz-pqzk.vercel.app into the address bar, and sign in from there.",
+    "Pi itself rejected the sign-in (“Authentication failed”): the PiNet link can't complete login, and PiGigz is a Testnet app, so its sign-in completes in Pi's official Pi Sandbox test environment — open the app's Sandbox link and sign in there.",
+  sandboxNote:
+    "You're in the Pi Sandbox, Pi's official environment for testing Testnet apps like PiGigz — Pi sign-in completes here. Approve the consent request and you'll be signed in with your Pi account (Testnet).",
+  loginErrorTestnet:
+    "Pi itself rejected the sign-in (“Authentication failed”). The reason: PiGigz is still a Testnet app, and Pi Browser's live (Mainnet) shell doesn't complete sign-in for Testnet apps — Pi's internal validation fails right after you approve the scopes. Test sign-in completes in Pi's official Pi Sandbox environment: open the app's Sandbox link and sign in there.",
+  openSandbox: "Open the Pi Sandbox",
   logoAltHeader: "The official PiGigz logo: a freelancer at a laptop with gig cards falling onto it",
   logoAltHero:
     "The official PiGigz logo: a freelancer at a golden laptop surrounded by service cards — design, translation, video editing and marketing — in dark plum and gold",
@@ -463,14 +477,14 @@ const en: Dict = {
   gateBody: (action) =>
     `${action} uses your Pi account, and your Pi username is what appears on your work and orders — no separate sign-up or new password.`,
   gatePreparing: "Preparing the Pi SDK…",
-  gateStepsTitle: "Login only works inside Pi Browser:",
+  gateStepsTitle: "Login only works inside Pi's environment:",
   gateSteps: [
-    "Open the Pi app and go to Pi Browser.",
-    "Open PiGigz there while signed in to your account.",
-    "Tap “Log in with Pi” and approve the username, payments and wallet address scopes.",
+    "PiGigz is still a Testnet app, and test sign-in completes in Pi's official Pi Sandbox environment.",
+    "Open the app's Sandbox link in your browser, and authorize the Sandbox from the Pi app (Pi Utilities → Authorize Sandbox) if it asks.",
+    "Inside the Sandbox, tap “Log in with Pi” and approve the username, payments and wallet address scopes.",
   ],
   gateWebNote:
-    "A regular browser has no Pi account, so real login can't complete there — but browsing and search work fine.",
+    "A regular browser has no Pi account, so real login can't complete there — but browsing and search work fine. Opening the app directly in Pi Browser doesn't complete sign-in for Testnet apps either; the official test environment is the Sandbox.",
   gateIncomplete: (id) =>
     `You have an old incomplete payment on your account (ID ${id}) — the PiGigz team will complete or cancel it manually.`,
   searchLabel: "Search for a service",
@@ -884,17 +898,29 @@ function detectPiSandbox(): boolean {
  * web gateway, which embeds the app's registered frontend URL in an
  * iframe. PiNet is a limited preview environment, not the full Pi Browser
  * app shell: the Pi SDK itself refuses payments there
- * (Pi.createPayment throws "Method unsupported in PiNet"), and for this
- * Testnet app Pi.authenticate also dies there — after the user approves
- * the consent sheet, the SDK's own validation call (GET /v2/me against
- * the host-supplied backend URL, inside Pi.authenticate, before this
- * app's server is ever contacted) fails and the SDK rejects with
- * "Authentication failed.". The working path is the standard one every
- * Pi app uses: open the app's own frontend address directly inside
- * Pi Browser, where the native app shell hosts the SDK bridge. The UI
- * detects PiNet framing (same signals the SDK uses: ancestor origins /
- * referrer) and tells the user exactly that, instead of leaving them
- * with Pi's raw error.
+ * (Pi.createPayment throws "Method unsupported in PiNet"), and
+ * Pi.authenticate also dies there.
+ *
+ * The full "Authentication failed." diagnosis (verified 2026-11-24 by
+ * reading the current pi-sdk.js source and testing the deployed server):
+ * Pi.authenticate runs the consent sheet through the host, then takes
+ * {accessToken, backendURL} from the host's communication-info reply and
+ * validates the token itself with GET {backendURL}/v2/me; any failure
+ * there — before this app's server is ever contacted — rejects with
+ * exactly "Authentication failed.". PiGigz is a Testnet (Staging) app,
+ * and that validation fails in BOTH non-Testnet hosts: PiNet's preview
+ * shell and Pi Browser's live Mainnet shell (the user approved the
+ * consent sheet in Pi Browser on the app's own Vercel address and still
+ * got "Authentication failed."; the deployed server meanwhile answers a
+ * bogus token with its invalid-token error and a real payment config,
+ * so the server path is healthy). The one environment where a Testnet
+ * app's login completes is Pi's own Sandbox (sandbox.minepi.com), whose
+ * host supplies Testnet communication info — which is why the app's
+ * Developer Portal development_url (what the Sandbox loads) was pointed
+ * at the deployed Vercel URL instead of the original localhost:3000.
+ * The UI detects each environment (same signals the SDK uses: ancestor
+ * origins / referrer) and routes the user to the Sandbox instead of
+ * leaving them with Pi's raw error.
  */
 function detectPiNet(): boolean {
   try {
@@ -925,6 +951,9 @@ type PiSession = {
   accessToken: string;
   walletAddress?: string;
 };
+
+/** This app's official Pi Sandbox link — the Testnet test environment where Pi login completes for this staging app. */
+const PI_SANDBOX_URL = "https://sandbox.minepi.com/mobile-app-ui/app/pigigz-bt8b";
 
 // v2: sessions saved before the wallet_address scope was added are dropped,
 // so every user signs in again and grants the new scopes.
@@ -1065,8 +1094,10 @@ type LoginGateProps = {
   sdkReady: boolean;
   inPiBrowser: boolean;
   inPiNet: boolean;
+  inSandbox: boolean;
   loginBusy: boolean;
   loginError: string | null;
+  loginSandboxHint: boolean;
   incompletePaymentId: string | null;
   onLogin: () => void;
 };
@@ -1076,8 +1107,10 @@ function LoginGate({
   sdkReady,
   inPiBrowser,
   inPiNet,
+  inSandbox,
   loginBusy,
   loginError,
+  loginSandboxHint,
   incompletePaymentId,
   onLogin,
 }: LoginGateProps & { actionLabel: string }) {
@@ -1093,7 +1126,12 @@ function LoginGate({
           {t.pinetNote}
         </p>
       )}
-      {inPiBrowser ? (
+      {inSandbox && (
+        <p className="mx-auto mt-3 max-w-md rounded-xl bg-[var(--surface)] p-3 text-start text-sm font-semibold leading-relaxed">
+          {t.sandboxNote}
+        </p>
+      )}
+      {inPiBrowser || inSandbox ? (
         <>
           <button
             type="button"
@@ -1106,15 +1144,25 @@ function LoginGate({
           {!sdkReady && <p className="mt-2 text-xs text-[var(--dim)]">{t.gatePreparing}</p>}
         </>
       ) : (
-        <div className="mx-auto mt-4 max-w-md rounded-xl bg-[var(--surface)] p-4 text-start text-sm leading-relaxed">
-          <p className="font-bold">{t.gateStepsTitle}</p>
-          <ol className="mt-1 list-decimal space-y-1 ps-5">
-            {t.gateSteps.map((s) => (
-              <li key={s}>{s}</li>
-            ))}
-          </ol>
-          <p className="mt-2 text-[var(--dim)]">{t.gateWebNote}</p>
-        </div>
+        <>
+          <div className="mx-auto mt-4 max-w-md rounded-xl bg-[var(--surface)] p-4 text-start text-sm leading-relaxed">
+            <p className="font-bold">{t.gateStepsTitle}</p>
+            <ol className="mt-1 list-decimal space-y-1 ps-5">
+              {t.gateSteps.map((s) => (
+                <li key={s}>{s}</li>
+              ))}
+            </ol>
+            <p className="mt-2 text-[var(--dim)]">{t.gateWebNote}</p>
+          </div>
+          <a
+            href={PI_SANDBOX_URL}
+            target="_blank"
+            rel="noreferrer"
+            className="mt-4 inline-block rounded-full bg-[var(--gold)] px-6 py-3 font-display text-base font-black text-[#3b1145]"
+          >
+            {t.openSandbox}
+          </a>
+        </>
       )}
       {incompletePaymentId && (
         <p className="mt-3 text-sm font-semibold">{t.gateIncomplete(incompletePaymentId)}</p>
@@ -1123,6 +1171,16 @@ function LoginGate({
         <p role="alert" className="mt-3 font-semibold text-[var(--danger)]">
           {loginError}
         </p>
+      )}
+      {loginError && loginSandboxHint && (
+        <a
+          href={PI_SANDBOX_URL}
+          target="_blank"
+          rel="noreferrer"
+          className="mt-3 inline-block rounded-full bg-[var(--gold)] px-6 py-3 font-display text-base font-black text-[#3b1145]"
+        >
+          {t.openSandbox}
+        </a>
       )}
     </div>
   );
@@ -1238,8 +1296,10 @@ export function App() {
   const [sdkReady, setSdkReady] = useState(false);
   const [inPiBrowser, setInPiBrowser] = useState(false);
   const [inPiNet, setInPiNet] = useState(false);
+  const [inSandbox, setInSandbox] = useState(false);
   const [loginBusy, setLoginBusy] = useState(false);
   const [loginError, setLoginError] = useState<string | null>(null);
+  const [loginSandboxHint, setLoginSandboxHint] = useState(false);
   const [incompletePaymentId, setIncompletePaymentId] = useState<string | null>(null);
   const [incompleteResolvedMsg, setIncompleteResolvedMsg] = useState<string | null>(null);
   const resolvingIncompleteRef = useRef<string | null>(null);
@@ -1261,6 +1321,7 @@ export function App() {
   useEffect(() => {
     setInPiBrowser(/PiBrowser/i.test(window.navigator.userAgent));
     setInPiNet(detectPiNet());
+    setInSandbox(detectPiSandbox());
     let cancelled = false;
     let tries = 0;
     const timer = window.setInterval(() => {
@@ -1301,6 +1362,7 @@ export function App() {
 
   async function loginWithPi() {
     setLoginError(null);
+    setLoginSandboxHint(false);
     if (!window.Pi) {
       setLoginError(t.loginErrorSdk);
       return;
@@ -1326,12 +1388,21 @@ export function App() {
       // Show the underlying reason (the server's own Arabic message, or
       // the Pi SDK's error) next to the generic text, so a failed login
       // says exactly what went wrong instead of just "didn't complete".
-      // Special case: the SDK's "Authentication failed." while framed by
-      // PiNet means Pi's gateway environment rejected the flow itself —
-      // point the user at the app's own address inside Pi Browser.
+      // Special case: the SDK's own "Authentication failed." means Pi's
+      // host environment rejected the flow during the SDK's internal
+      // token validation, before our server was contacted. PiGigz is a
+      // Testnet app, so that happens in every non-Testnet host (PiNet's
+      // preview shell and Pi Browser's live Mainnet shell alike); the
+      // working path is Pi's Sandbox test environment, so say exactly
+      // that and offer its link. Inside the Sandbox itself, fall through
+      // to the generic message with the raw detail.
       const detail = e instanceof Error && e.message ? e.message : "";
-      if (inPiNet && detail.includes("Authentication failed")) {
+      if (detail.includes("Authentication failed") && inPiNet) {
         setLoginError(t.loginErrorPinet);
+        setLoginSandboxHint(true);
+      } else if (detail.includes("Authentication failed") && !inSandbox) {
+        setLoginError(t.loginErrorTestnet);
+        setLoginSandboxHint(true);
       } else {
         setLoginError(detail ? `${t.loginErrorGeneric} (${detail})` : t.loginErrorGeneric);
       }
@@ -1347,6 +1418,7 @@ export function App() {
     setIncompletePaymentId(null);
     setIncompleteResolvedMsg(null);
     setLoginError(null);
+    setLoginSandboxHint(false);
   }
 
   // An incomplete payment reported during Pi.authenticate is resolved
@@ -1377,8 +1449,10 @@ export function App() {
     sdkReady,
     inPiBrowser,
     inPiNet,
+    inSandbox,
     loginBusy,
     loginError,
+    loginSandboxHint,
     incompletePaymentId,
     onLogin: () => void loginWithPi(),
   };
@@ -1483,7 +1557,7 @@ export function App() {
                     {loginBusy ? t.loggingIn : t.login}
                   </button>
                   <span className="text-xs leading-relaxed text-[#e8d9f2]">
-                    {inPiBrowser ? t.loginHintPi : t.loginHintWeb}
+                    {inSandbox ? t.loginHintSandbox : inPiBrowser ? t.loginHintPi : t.loginHintWeb}
                   </span>
                 </>
               )}
@@ -1493,9 +1567,26 @@ export function App() {
                 {t.pinetNote}
               </p>
             )}
+            {inSandbox && !session && (
+              <p className="pb-1 text-sm font-semibold leading-relaxed text-[#ffe1a8]">
+                {t.sandboxNote}
+              </p>
+            )}
             {loginError && !session && (
               <p role="alert" className="pb-1 text-sm font-semibold text-[#ffb4a2]">
                 {loginError}
+              </p>
+            )}
+            {loginError && loginSandboxHint && !session && (
+              <p className="pb-2">
+                <a
+                  href={PI_SANDBOX_URL}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-block rounded-full bg-[var(--gold)] px-4 py-2 font-display text-sm font-black text-[#3b1145]"
+                >
+                  {t.openSandbox}
+                </a>
               </p>
             )}
             {incompletePaymentId && session && (
