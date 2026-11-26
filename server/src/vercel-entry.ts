@@ -247,6 +247,14 @@ async function dispatch(
   try {
     result = await def.handler(makeCtx(def, db), parsed.data);
   } catch (err) {
+    // Diagnostic logging (2026-11-25): Vercel runtime logs were empty because
+    // the server never logged anything. Log every failed action with its
+    // action name + exact message (no secrets) so the next failed payment
+    // shows up in Vercel > Logs instead of disappearing.
+    console.error(
+      `[pigigz] ${actionName} failed:`,
+      err instanceof Error ? err.message : String(err),
+    );
     return {
       status: 400,
       body: { error: err instanceof Error ? err.message : String(err) },

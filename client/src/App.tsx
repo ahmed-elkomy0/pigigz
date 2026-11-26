@@ -1019,10 +1019,25 @@ function runRealPiPayment(opts: {
       return;
     }
     let settled = false;
+    // Diagnostic fix (2026-11-25): the Pi SDK calls onError with its own
+    // generic "Something went wrong" when the approval sheet times out, which
+    // overwrote the server's exact error. Keep the last server-side error
+    // (approve/complete) and prefer it over the SDK's generic one.
+    let serverError: Error | null = null;
     const fail = (e: unknown) => {
       if (settled) return;
       settled = true;
-      reject(e instanceof Error ? e : new Error(opts.errorMessage));
+      const err = serverError ?? (e instanceof Error ? e : new Error(opts.errorMessage));
+      reject(err);
+    };
+    const failServer = (e: unknown) => {
+      const msg = e instanceof Error && e.message ? e.message : opts.errorMessage;
+      serverError = new Error(
+        msg.startsWith("خطأ السيرفر:") || msg === opts.cancelledMessage
+          ? msg
+          : `خطأ السيرفر: ${msg}`,
+      );
+      fail(serverError);
     };
     const markFailed = (paymentId: string | null, reason: "cancelled" | "error") => {
       void api
@@ -1053,7 +1068,7 @@ function runRealPiPayment(opts: {
                 intentId: opts.intentId,
                 paymentId,
               })
-              .catch(fail);
+              .catch(failServer);
           },
           onReadyForServerCompletion: (paymentId, txid) => {
             opts.onStep(3);
@@ -1069,7 +1084,7 @@ function runRealPiPayment(opts: {
                 settled = true;
                 resolve(res);
               })
-              .catch(fail);
+              .catch(failServer);
           },
           onCancel: (paymentId) => {
             markFailed(paymentId ?? null, "cancelled");
@@ -1077,7 +1092,9 @@ function runRealPiPayment(opts: {
           },
           onError: (error, payment) => {
             markFailed(payment?.identifier ?? null, "error");
-            fail(error);
+            // Prefer the server's exact error (if approve/complete already
+            // failed) over the SDK's generic timeout message.
+            fail(serverError ?? error);
           },
         },
       );
