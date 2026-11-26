@@ -1805,13 +1805,22 @@ export const Actions = {
     response: okResponse,
     privileged: [privileged.piApi],
     async handler(ctx, args): Promise<z.infer<typeof okResponse>> {
-      const user = await requirePiUser(ctx, args.auth);
+      // Timeout fix (2026-11-26): the three reads below are independent —
+      // verify the user token (Pi v2/me, up to 8s), load the payment intent
+      // from the DB, and fetch the payment from Pi (up to 15s). Running them
+      // one after another, then POST /approve (up to 15s), cost up to ~38s
+      // against the 60s function limit and the call died before answering
+      // (client saw only the generic SDK error). Run them together instead.
       const db = ctx.db<typeof schema>();
-      const rows = await db
-        .select()
-        .from(schema.paymentIntents)
-        .where(eq(schema.paymentIntents.id, args.intentId))
-        .limit(1);
+      const [user, rows, payment] = await Promise.all([
+        requirePiUser(ctx, args.auth),
+        db
+          .select()
+          .from(schema.paymentIntents)
+          .where(eq(schema.paymentIntents.id, args.intentId))
+          .limit(1),
+        getPiPayment(ctx, args.paymentId),
+      ]);
       const intent = rows[0];
       if (!intent) throw new Error("نية الدفع مش موجودة");
       if (intent.buyerPiUid !== user.piUid)
@@ -1821,7 +1830,6 @@ export const Actions = {
       if (intent.piPaymentId && intent.piPaymentId !== args.paymentId)
         throw new Error("معرّف الدفعة مش متطابق مع نية الدفع");
 
-      const payment = await getPiPayment(ctx, args.paymentId);
       if (payment.direction !== "user_to_app")
         throw new Error("اتجاه الدفعة مش من العميل للتطبيق");
       if (payment.user_uid !== user.piUid)
@@ -1866,13 +1874,20 @@ export const Actions = {
     }),
     privileged: [privileged.piApi],
     async handler(ctx, args) {
-      const user = await requirePiUser(ctx, args.auth);
+      // Timeout fix (2026-11-26): same as approvePayment — verify the user
+      // token, load the payment intent, and fetch the payment from Pi in
+      // parallel instead of one after another, so the call answers well
+      // inside the 60s function limit.
       const db = ctx.db<typeof schema>();
-      const rows = await db
-        .select()
-        .from(schema.paymentIntents)
-        .where(eq(schema.paymentIntents.id, args.intentId))
-        .limit(1);
+      const [user, rows, payment] = await Promise.all([
+        requirePiUser(ctx, args.auth),
+        db
+          .select()
+          .from(schema.paymentIntents)
+          .where(eq(schema.paymentIntents.id, args.intentId))
+          .limit(1),
+        getPiPayment(ctx, args.paymentId),
+      ]);
       const intent = rows[0];
       if (!intent) throw new Error("نية الدفع مش موجودة");
       if (intent.buyerPiUid !== user.piUid)
@@ -1890,7 +1905,6 @@ export const Actions = {
       if (intent.piPaymentId && intent.piPaymentId !== args.paymentId)
         throw new Error("معرّف الدفعة مش متطابق مع نية الدفع");
 
-      const payment = await getPiPayment(ctx, args.paymentId);
       if (payment.user_uid !== user.piUid)
         throw new Error("هوية الدافع في Pi مش متطابقة مع حسابك");
       if (roundPi(payment.amount) !== intent.amountPi)
