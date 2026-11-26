@@ -1630,10 +1630,16 @@ export const Actions = {
       escrowPi: z.number(),
       boughtCompleted: z.number(),
       boughtPending: z.number(),
+      walletAddress: z.string().nullable(),
     }),
     async handler(ctx, args) {
       const user = await requirePiUser(ctx, args.auth);
       const db = ctx.db<typeof schema>();
+      const userRows = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id))
+        .limit(1);
       const orderRows = await db.select().from(schema.orders);
       const sold = orderRows.filter((o) => o.sellerPiUid === user.piUid);
       const bought = orderRows.filter((o) => o.buyerPiUid === user.piUid);
@@ -1666,7 +1672,31 @@ export const Actions = {
         escrowPi: roundPi(boughtPending.reduce((s, o) => s + o.amountPi, 0)),
         boughtCompleted: boughtDone.length,
         boughtPending: boughtPending.length,
+        walletAddress: userRows[0]?.walletAddress ?? null,
       };
+    },
+  }),
+
+  setWalletAddress: defineAction({
+    description:
+      "Saves the signed-in user's own Pi wallet address for app_to_user payouts, for when Pi did not return it via the wallet_address scope.",
+    request: z.object({
+      auth: piAuthShape,
+      walletAddress: z
+        .string()
+        .trim()
+        .regex(/^G[A-Z2-7]{55}$/, "عنوان المحفظة مش صحيح — لازم يبدأ بـ G ويكون 56 حرف"),
+    }),
+    response: okResponse,
+    async handler(ctx, args) {
+      const user = await requirePiUser(ctx, args.auth);
+      const db = ctx.db<typeof schema>();
+      await db
+        .update(schema.users)
+        .set({ walletAddress: args.walletAddress })
+        .where(eq(schema.users.id, user.id));
+      ctx.invalidateQueries();
+      return { ok: true };
     },
   }),
 

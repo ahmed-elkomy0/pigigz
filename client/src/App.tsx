@@ -386,6 +386,13 @@ const ar = {
   boughtPendingLabel: "طلبات مستنية التسليم/الاعتماد",
   walletNote:
     "أول ما العميل يعتمد التسليم، التطبيق بيدفع للفريلانسر صافي المبلغ بعد عمولة 10% بدفعة Pi حقيقية (app_to_user) من السيرفر، وحالتها (معلّقة/مُرسلة/مكتملة/فاشلة) بتظهر على كل طلب. في وضع المحاكاة التحرير بيكون لحظيًا.",
+  payoutWalletTitle: "عنوان محفظتك للاستلام",
+  payoutWalletHint:
+    "دفعات الفريلانسر بتتبعت على العنوان ده. انسخه من محفظة Pi بتاعتك (wallet.pi) والصقه هنا — لازم يبدأ بـ G ويكون 56 حرف.",
+  payoutWalletPlaceholder: "G… (56 حرف)",
+  payoutWalletSave: "احفظ العنوان",
+  payoutWalletSaved: "اتحفظ عنوان محفظتك ✓",
+  payoutWalletMissing: "مش متسجل عنوان محفظة — الدفعات مش هتوصلك من غيره.",
   /* Explore map */
   mapTitle: "استكشف العالم",
   mapSubtitle:
@@ -740,6 +747,13 @@ const en: Dict = {
   boughtPendingLabel: "Orders awaiting delivery/approval",
   walletNote:
     "As soon as the client approves delivery, the app pays the freelancer the net amount after the 10% commission with a real server-side Pi payment (app_to_user), and its status (pending / submitted / completed / failed) shows on each order. In simulation mode the release is instant.",
+  payoutWalletTitle: "Your payout wallet address",
+  payoutWalletHint:
+    "Freelancer payouts are sent to this address. Copy it from your Pi Wallet (wallet.pi) and paste it here — it must start with G and be 56 characters.",
+  payoutWalletPlaceholder: "G… (56 characters)",
+  payoutWalletSave: "Save address",
+  payoutWalletSaved: "Your wallet address was saved ✓",
+  payoutWalletMissing: "No wallet address saved — payouts can't reach you without it.",
   mapTitle: "Explore the world",
   mapSubtitle:
     "Spin the 3D globe with your hand, zoom in and out, and tap any numbered pin to see the gig, the freelancer and its Pi price — or switch to the flat map anytime. Pins are gigs from freelancers who picked their own city on their profile.",
@@ -3675,6 +3689,20 @@ function WalletPanel({
     enabled: !!session,
   });
   const w = wallet.data;
+  const queryClient = useQueryClient();
+  const [addr, setAddr] = useState("");
+  const [saveMsg, setSaveMsg] = useState<string | null>(null);
+  const saveAddress = useMutation({
+    mutationFn: async () =>
+      await api.setWalletAddress({ auth: authOf(session!), walletAddress: addr.trim() }),
+    onSuccess: () => {
+      setSaveMsg(t.payoutWalletSaved);
+      setAddr("");
+      void queryClient.invalidateQueries({ queryKey: ["wallet", session?.piUid ?? ""] });
+    },
+    onError: (err: unknown) =>
+      setSaveMsg(err instanceof Error && err.message ? err.message : t.actionErrGeneric),
+  });
 
   return (
     <section aria-label={t.nav.wallet} className="mt-5">
@@ -3748,6 +3776,51 @@ function WalletPanel({
                 <dd className="font-bold">{w.boughtCompleted}</dd>
               </div>
             </dl>
+          </div>
+
+          <div className="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-5 sm:col-span-2">
+            <h3 className="font-display text-lg font-black">{t.payoutWalletTitle}</h3>
+            <p className="mt-1 text-sm leading-relaxed text-[var(--dim)]">{t.payoutWalletHint}</p>
+            {w.walletAddress ? (
+              <p
+                className="mt-3 break-all rounded-xl bg-white/5 px-3 py-2 font-mono text-xs"
+                dir="ltr"
+              >
+                {w.walletAddress}
+              </p>
+            ) : (
+              <p className="mt-3 text-sm font-bold text-red-600">{t.payoutWalletMissing}</p>
+            )}
+            <div className="mt-3 flex flex-col gap-2 sm:flex-row">
+              <input
+                type="text"
+                value={addr}
+                onChange={(e) => {
+                  setAddr(e.target.value);
+                  setSaveMsg(null);
+                }}
+                placeholder={t.payoutWalletPlaceholder}
+                dir="ltr"
+                className="min-w-0 flex-1 rounded-full border border-[var(--border)] bg-transparent px-4 py-2 font-mono text-sm"
+              />
+              <button
+                type="button"
+                onClick={() => saveAddress.mutate()}
+                disabled={saveAddress.isPending || !addr.trim()}
+                className="rounded-full bg-[var(--gold)] px-4 py-2 font-display text-sm font-black text-[#3b1145] disabled:opacity-60"
+              >
+                {t.payoutWalletSave}
+              </button>
+            </div>
+            {saveMsg && (
+              <p
+                className={`mt-2 text-sm font-bold ${
+                  saveAddress.isError ? "text-red-600" : "text-emerald-600"
+                }`}
+              >
+                {saveMsg}
+              </p>
+            )}
           </div>
 
           <p className="text-sm leading-relaxed text-[var(--dim)] sm:col-span-2">{t.walletNote}</p>
