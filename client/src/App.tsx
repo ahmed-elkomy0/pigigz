@@ -1326,6 +1326,21 @@ export function App() {
     queryFn: () => api.getStats({}),
   });
 
+  // Orders needing my action: as seller, paid orders awaiting delivery;
+  // as buyer, delivered orders awaiting my approval. Same cache key as
+  // OrdersPanel, so this shares its fetch instead of adding another one.
+  const ordersBadge = useQuery({
+    queryKey: ["orders"],
+    queryFn: () => api.listOrders({ limit: 50 }),
+    enabled: session != null,
+  });
+  const actionCount = (ordersBadge.data?.orders ?? []).filter((o) => {
+    if (!session) return false;
+    if (o.status === "awaiting_delivery" && o.sellerPiUid === session.piUid) return true;
+    if (o.status === "delivered" && o.buyerPiUid === session.piUid) return true;
+    return false;
+  }).length;
+
   function setLang(l: Lang) {
     setLangState(l);
     try {
@@ -1636,6 +1651,20 @@ export function App() {
                     </span>
                   </div>
                 )}
+                {session && view === "market" && (
+                  <button
+                    type="button"
+                    onClick={goOrders}
+                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--gold)] px-4 py-2 font-display text-sm font-black text-[#3b1145]"
+                  >
+                    {t.viewMyOrders}
+                    {actionCount > 0 && (
+                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-black text-white">
+                        {actionCount}
+                      </span>
+                    )}
+                  </button>
+                )}
               </div>
               <img
                 src={logoImg}
@@ -1744,7 +1773,14 @@ export function App() {
                     : "text-[var(--dim)]"
                 }`}
               >
-                {tab.label}
+                <span className="relative inline-block">
+                  {tab.label}
+                  {tab.key === "orders" && actionCount > 0 && (
+                    <span className="absolute -top-2.5 -right-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-black text-white">
+                      {actionCount}
+                    </span>
+                  )}
+                </span>
               </button>
             ))}
           </div>
