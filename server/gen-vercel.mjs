@@ -161,7 +161,7 @@ console.log("gen-vercel: bundled actions function into .vercel/output/functions/
 /*                                                                     */
 /* The header set is the one that previously lived in vercel.json: a   */
 /* CSP tuned to what the page loads (Pi SDK, Google Fonts, map tiles,  */
-/* Pi Platform API + Testnet horizon) and frame-ancestors limited to   */
+/* Pi Platform API + Pi horizons, Testnet and Mainnet) and frame-ancestors limited to   */
 /* the Pi surfaces that legitimately embed the app: the Pi Sandbox,    */
 /* Pi Browser (minepi.com) and PiNet (pinet.com), which iframes the    */
 /* registered frontend URL — it was missing, so strict browsers could  */
@@ -170,7 +170,7 @@ console.log("gen-vercel: bundled actions function into .vercel/output/functions/
 
 const headers = {
   "Content-Security-Policy":
-    "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.minepi.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://external.xx.fbcdn.net https://clarity.maptiles.arcgis.com https://*.tiles.virtualearth.net; connect-src 'self' https://socialchain.app https://api.minepi.com https://api.testnet.minepi.com https://sdk.minepi.com https://external.xx.fbcdn.net https://clarity.maptiles.arcgis.com https://*.tiles.virtualearth.net; worker-src 'self' blob:; child-src 'self' blob:; frame-ancestors 'self' https://sandbox.minepi.com https://minepi.com https://*.minepi.com https://pinet.com https://*.pinet.com; base-uri 'self'; form-action 'self'",
+    "default-src 'self'; script-src 'self' 'unsafe-inline' https://sdk.minepi.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' data: https://fonts.gstatic.com; img-src 'self' data: blob: https://external.xx.fbcdn.net https://clarity.maptiles.arcgis.com https://*.tiles.virtualearth.net; connect-src 'self' https://socialchain.app https://api.minepi.com https://api.testnet.minepi.com https://api.mainnet.minepi.com https://sdk.minepi.com https://external.xx.fbcdn.net https://clarity.maptiles.arcgis.com https://*.tiles.virtualearth.net; worker-src 'self' blob:; child-src 'self' blob:; frame-ancestors 'self' https://sandbox.minepi.com https://minepi.com https://*.minepi.com https://pinet.com https://*.pinet.com; base-uri 'self'; form-action 'self'",
   "X-Content-Type-Options": "nosniff",
   "Referrer-Policy": "strict-origin-when-cross-origin",
   "Permissions-Policy": "camera=(), microphone=(), geolocation=()",

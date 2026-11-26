@@ -20,6 +20,8 @@ import {
  *     Portal, used as `Authorization: Key …` against the Pi Platform API.
  *   PI_WALLET_SEED — the app wallet's secret seed, used only here to sign
  *     the app_to_user payout transaction on the Pi blockchain.
+ *   PI_NETWORK — "mainnet" or "testnet" (default): picks the Pi blockchain
+ *     horizon + network passphrase, so one codebase deploys to both.
  * Action code never sees either value: it only gets booleans, parsed Pi
  * API responses, and transaction ids back.
  */
@@ -51,14 +53,24 @@ export const privileged = definePrivilegedContracts({
 });
 
 const PI_API_BASE = "https://api.minepi.com/v2";
-/** Pi blockchain API (Testnet — this app is registered as Testnet/Staging). */
-const PI_HORIZON_URL = "https://api.testnet.minepi.com";
-const PI_NETWORK_PASSPHRASE = "Pi Testnet";
 
 function serverEnv(name: string): string | null {
   const v = process.env[name];
   return v && v.trim() ? v.trim() : null;
 }
+
+/**
+ * Pi blockchain API — network-aware via the PI_NETWORK env var so ONE
+ * codebase deploys to both networks:
+ *   PI_NETWORK=mainnet → Pi Mainnet (api.mainnet.minepi.com, "Pi Network")
+ *   unset / anything else → Pi Testnet (default, keeps Testnet working)
+ */
+const PI_NETWORK = (serverEnv("PI_NETWORK") ?? "testnet").toLowerCase();
+const IS_MAINNET = PI_NETWORK === "mainnet";
+const PI_HORIZON_URL = IS_MAINNET
+  ? "https://api.mainnet.minepi.com"
+  : "https://api.testnet.minepi.com";
+const PI_NETWORK_PASSPHRASE = IS_MAINNET ? "Pi Network" : "Pi Testnet";
 
 /** Stellar amounts are strings with at most 7 decimal places. */
 function stellarAmount(n: number): string {
