@@ -200,6 +200,7 @@ const ar = {
   sellErrGeneric: "النشر مكمّلش. راجع البيانات وحاول تاني.",
   statusErrGeneric: "تغيير حالة الخدمة مكمّلش. حاول تاني.",
   myGigsTitle: (u: string) => `خدماتي المنشورة باسم @${u}`,
+  myGigsBtn: "خدماتي",
   gigActive: "شغالة",
   gigPausedState: "متوقفة",
   pauseBtn: "إيقاف مؤقت",
@@ -587,6 +588,7 @@ const en: Dict = {
   sellErrGeneric: "Publishing didn't complete. Check the details and try again.",
   statusErrGeneric: "Changing the gig status didn't complete. Try again.",
   myGigsTitle: (u) => `My gigs published as @${u}`,
+  myGigsBtn: "My gigs",
   gigActive: "Active",
   gigPausedState: "Paused",
   pauseBtn: "Pause",
@@ -1379,30 +1381,6 @@ export function App() {
     return false;
   }).length;
 
-  // The Sandbox iframe on phones can sit lower than the visible screen, so
-  // a fixed bottom nav ends up below the fold. Measure the hidden strip
-  // via visualViewport and lift the nav exactly above it (12px clearance);
-  // on a normal browser the lift is just 12px.
-  const [navLift, setNavLift] = useState(12);
-  useEffect(() => {
-    const update = () => {
-      const vv = window.visualViewport;
-      if (!vv) return;
-      const hidden = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setNavLift(Math.round(hidden) + 12);
-    };
-    update();
-    const vv = window.visualViewport;
-    vv?.addEventListener("resize", update);
-    vv?.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-    return () => {
-      vv?.removeEventListener("resize", update);
-      vv?.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, []);
-
   function setLang(l: Lang) {
     setLangState(l);
     try {
@@ -1555,6 +1533,16 @@ export function App() {
     setSelectedGigId(null);
     setProfileUid(null);
     setView("orders");
+  };
+
+  // Jump flag: the hero "خدماتي" button opens the Sell view and scrolls
+  // straight to the my-gigs list so the seller can edit right away.
+  const [sellJump, setSellJump] = useState(false);
+  const goMyGigs = () => {
+    setSelectedGigId(null);
+    setProfileUid(null);
+    setView("sell");
+    setSellJump(true);
   };
 
   const openProfile = (uid: string) => {
@@ -1714,18 +1702,27 @@ export function App() {
                   </div>
                 )}
                 {session && view === "market" && (
-                  <button
-                    type="button"
-                    onClick={goOrders}
-                    className="mt-4 inline-flex items-center gap-2 rounded-full bg-[var(--gold)] px-4 py-2 font-display text-sm font-black text-[#3b1145]"
-                  >
-                    {t.viewMyOrders}
-                    {actionCount > 0 && (
-                      <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-black text-white">
-                        {actionCount}
-                      </span>
-                    )}
-                  </button>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={goOrders}
+                      className="inline-flex items-center gap-2 rounded-full bg-[var(--gold)] px-4 py-2 font-display text-sm font-black text-[#3b1145]"
+                    >
+                      {t.viewMyOrders}
+                      {actionCount > 0 && (
+                        <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1.5 text-[11px] font-black text-white">
+                          {actionCount}
+                        </span>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={goMyGigs}
+                      className="inline-flex items-center gap-2 rounded-full border border-white/40 px-4 py-2 font-display text-sm font-black text-white"
+                    >
+                      {t.myGigsBtn}
+                    </button>
+                  </div>
                 )}
               </div>
               <img
@@ -1737,7 +1734,7 @@ export function App() {
           </div>
         </header>
 
-        <main className="mx-auto max-w-5xl px-4 pb-28">
+        <main className="mx-auto max-w-5xl px-4 pb-10 pl-20 xl:pl-4">
           {demo ? (
             <DemoMode onExit={() => setDemo(false)} />
           ) : profileUid != null ? (
@@ -1777,6 +1774,8 @@ export function App() {
                   session={session}
                   loginGateProps={loginGateProps}
                   onPublished={() => setView("market")}
+                  jumpToMyGigs={sellJump}
+                  onJumped={() => setSellJump(false)}
                 />
               )}
               {view === "jobs" && (
@@ -1807,10 +1806,9 @@ export function App() {
         {!demo && (
         <nav
           aria-label="Main"
-          style={{ bottom: navLift }}
-          className="fixed inset-x-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-lg pb-safe"
+          className="fixed left-2 top-1/2 z-40 -translate-y-1/2 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-lg"
         >
-          <div className="mx-auto grid max-w-5xl grid-cols-6">
+          <div className="flex w-16 flex-col py-1">
             {(
               [
                 { key: "market", label: t.nav.market },
@@ -1830,7 +1828,7 @@ export function App() {
                   setProfileUid(null);
                   if (tab.key === "market") setSelectedGigId(null);
                 }}
-                className={`px-0.5 py-3 font-display text-[12px] font-bold sm:text-base ${
+                className={`px-1 py-3 text-center font-display text-[10px] font-bold leading-tight sm:text-[11px] ${
                   view === tab.key && profileUid == null
                     ? "text-[var(--accent)] dark:text-[var(--gold)]"
                     : "text-[var(--dim)]"
@@ -1839,7 +1837,7 @@ export function App() {
                 <span className="relative inline-block">
                   {tab.label}
                   {tab.key === "orders" && actionCount > 0 && (
-                    <span className="absolute -top-2.5 -right-3 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-black text-white">
+                    <span className="absolute -top-2 -right-2 flex h-5 min-w-5 items-center justify-center rounded-full bg-red-600 px-1 text-[11px] font-black text-white">
                       {actionCount}
                     </span>
                   )}
@@ -2364,10 +2362,14 @@ function SellPanel({
   session,
   loginGateProps,
   onPublished,
+  jumpToMyGigs,
+  onJumped,
 }: {
   session: PiSession | null;
   loginGateProps: LoginGateProps;
   onPublished: () => void;
+  jumpToMyGigs?: boolean;
+  onJumped?: () => void;
 }) {
   const { t } = useI18n();
   const queryClient = useQueryClient();
@@ -2389,6 +2391,13 @@ function SellPanel({
     queryFn: () => api.getWallet({ auth: authOf(session!) }),
     enabled: !!session,
   });
+
+  // The hero "خدماتي" button opens this view and jumps straight to the list.
+  useEffect(() => {
+    if (!jumpToMyGigs) return;
+    document.getElementById("my-gigs")?.scrollIntoView({ behavior: "smooth" });
+    onJumped?.();
+  }, [jumpToMyGigs, onJumped]);
 
   const myGigs = useQuery({
     queryKey: ["gigs", null, ""],
@@ -2546,6 +2555,15 @@ function SellPanel({
           <p className="mt-4 rounded-xl bg-[var(--surface-alt)] px-4 py-3 text-sm">
             {t.sellAsNote(session.username)}
           </p>
+          <button
+            type="button"
+            onClick={() =>
+              document.getElementById("my-gigs")?.scrollIntoView({ behavior: "smooth" })
+            }
+            className="mt-3 inline-flex items-center gap-2 rounded-full border border-[var(--border)] px-4 py-2 font-display text-sm font-bold"
+          >
+            {t.myGigsBtn}
+          </button>
           {done && (
             <div className="mt-4 rounded-[var(--radius)] bg-emerald-100 p-4 font-semibold text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200">
               {t.sellDone}{" "}
@@ -2694,7 +2712,7 @@ function SellPanel({
       {session &&
         myGigs.data &&
         myGigs.data.gigs.filter((g) => g.sellerPiUid === session.piUid).length > 0 && (
-          <div className="mt-8">
+          <div id="my-gigs" className="mt-8 scroll-mt-4">
             <h3 className="font-display text-xl font-black">{t.myGigsTitle(session.username)}</h3>
             <ul className="mt-3 space-y-3">
               {myGigs.data.gigs
@@ -5964,28 +5982,6 @@ function DemoMode({ onExit }: { onExit: () => void }) {
     [],
   );
 
-  // Same bottom-nav lift as the real app: the Sandbox iframe on phones can
-  // sit lower than the visible screen.
-  const [navLift, setNavLift] = useState(12);
-  useEffect(() => {
-    const update = () => {
-      const vv = window.visualViewport;
-      if (!vv) return;
-      const hidden = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
-      setNavLift(Math.round(hidden) + 12);
-    };
-    update();
-    const vv = window.visualViewport;
-    vv?.addEventListener("resize", update);
-    vv?.addEventListener("scroll", update);
-    window.addEventListener("resize", update);
-    return () => {
-      vv?.removeEventListener("resize", update);
-      vv?.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
-    };
-  }, []);
-
   const openGig = (id: number) => {
     setProfileUid(null);
     setGigId(id);
@@ -6152,10 +6148,9 @@ function DemoMode({ onExit }: { onExit: () => void }) {
 
       <nav
         aria-label="Demo"
-        className="fixed inset-x-3 rounded-2xl border-2 border-[var(--gold)] bg-[var(--surface)] shadow-lg pb-safe"
-        style={{ bottom: navLift }}
+        className="fixed left-2 top-1/2 z-40 -translate-y-1/2 rounded-2xl border-2 border-[var(--gold)] bg-[var(--surface)] shadow-lg"
       >
-        <div className="mx-auto grid max-w-5xl grid-cols-6">
+        <div className="flex w-16 flex-col py-1">
           {(
             [
               { key: "market", label: t.nav.market },
@@ -6175,7 +6170,7 @@ function DemoMode({ onExit }: { onExit: () => void }) {
                 setProfileUid(null);
                 if (tab.key === "market") setGigId(null);
               }}
-              className={`px-0.5 py-3 font-display text-[12px] font-bold sm:text-base ${
+              className={`px-1 py-3 text-center font-display text-[10px] font-bold leading-tight sm:text-[11px] ${
                 view === tab.key && profileUid == null
                   ? "text-[var(--accent)] dark:text-[var(--gold)]"
                   : "text-[var(--dim)]"
