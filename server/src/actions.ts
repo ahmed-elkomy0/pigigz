@@ -564,7 +564,9 @@ export const Actions = {
         piUid: user.piUid,
         username: user.username,
         verified: user.verified,
-        gigCount: gigRows.filter((g) => g.sellerPiUid === user.piUid).length,
+        gigCount: gigRows.filter(
+          (g) => g.sellerPiUid === user.piUid && g.status !== "deleted",
+        ).length,
         boughtCount: orderRows.filter((o) => o.buyerPiUid === user.piUid).length,
         soldCount: orderRows.filter((o) => o.sellerPiUid === user.piUid).length,
       };
@@ -589,6 +591,7 @@ export const Actions = {
       ]);
       const q = args.query.toLowerCase();
       const gigs = gigRows
+        .filter((g) => g.status !== "deleted")
         .filter((g) => (args.category ? g.category === args.category : true))
         .filter(
           (g) =>
@@ -681,6 +684,76 @@ export const Actions = {
       await db
         .update(schema.gigs)
         .set({ status: args.status })
+        .where(eq(schema.gigs.id, args.id));
+      ctx.invalidateQueries();
+      return { ok: true };
+    },
+  }),
+
+  updateGig: defineAction({
+    description:
+      "Edits a freelance service (gig) — title, description, category, Pi price and delivery days; only the Pi user who owns the gig can edit it.",
+    request: z.object({
+      auth: piAuthShape,
+      id: z.number().int().positive(),
+      title: z.string().trim().min(3, "العنوان قصير جدًا").max(90),
+      description: z.string().trim().min(10, "اكتب وصفًا أوضح لخدمتك").max(1200),
+      category: categoryEnum,
+      pricePi: z.number().positive("السعر لازم يكون أكبر من صفر").max(100000),
+      deliveryDays: z.number().int().min(1).max(90),
+    }),
+    response: okResponse,
+    async handler(ctx, args): Promise<z.infer<typeof okResponse>> {
+      const user = await requirePiUser(ctx, args.auth);
+      const db = ctx.db<typeof schema>();
+      const rows = await db
+        .select()
+        .from(schema.gigs)
+        .where(eq(schema.gigs.id, args.id))
+        .limit(1);
+      const gig = rows[0];
+      if (!gig) throw new Error("الخدمة دي مش موجودة");
+      if (gig.status === "deleted") throw new Error("الخدمة دي اتمسحت خلاص");
+      if (gig.sellerPiUid && gig.sellerPiUid !== user.piUid)
+        throw new Error("الخدمة دي مش بتاعتك، فمينفعش تعدّلها");
+      await db
+        .update(schema.gigs)
+        .set({
+          title: args.title,
+          description: args.description,
+          category: args.category,
+          pricePi: roundPi(args.pricePi),
+          deliveryDays: args.deliveryDays,
+        })
+        .where(eq(schema.gigs.id, args.id));
+      ctx.invalidateQueries();
+      return { ok: true };
+    },
+  }),
+
+  deleteGig: defineAction({
+    description:
+      "Deletes a freelance service (soft delete: hidden from the marketplace, the row stays so past orders and reviews keep working); only the Pi user who owns the gig can delete it.",
+    request: z.object({
+      auth: piAuthShape,
+      id: z.number().int().positive(),
+    }),
+    response: okResponse,
+    async handler(ctx, args): Promise<z.infer<typeof okResponse>> {
+      const user = await requirePiUser(ctx, args.auth);
+      const db = ctx.db<typeof schema>();
+      const rows = await db
+        .select()
+        .from(schema.gigs)
+        .where(eq(schema.gigs.id, args.id))
+        .limit(1);
+      const gig = rows[0];
+      if (!gig) throw new Error("الخدمة دي مش موجودة");
+      if (gig.sellerPiUid && gig.sellerPiUid !== user.piUid)
+        throw new Error("الخدمة دي مش بتاعتك، فمينفعش تمسحها");
+      await db
+        .update(schema.gigs)
+        .set({ status: "deleted" })
         .where(eq(schema.gigs.id, args.id));
       ctx.invalidateQueries();
       return { ok: true };

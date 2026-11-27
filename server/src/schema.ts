@@ -96,7 +96,7 @@ export const gigs = sqliteTable("gigs", {
   category: text("category", { enum: CATEGORIES }).notNull(),
   pricePi: real("price_pi").notNull(),
   deliveryDays: integer("delivery_days").notNull(),
-  status: text("status", { enum: ["active", "paused"] })
+  status: text("status", { enum: ["active", "paused", "deleted"] })
     .notNull()
     .default("active"),
   createdAt: integer("created_at", { mode: "timestamp_ms" })

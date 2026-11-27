@@ -204,6 +204,16 @@ const ar = {
   gigPausedState: "متوقفة",
   pauseBtn: "إيقاف مؤقت",
   activateBtn: "تفعيل",
+  editBtn: "تعديل",
+  deleteBtn: "مسح",
+  confirmDeleteBtn: "متأكد؟ امسحها",
+  saveEditBtn: "احفظ التعديلات",
+  savingEdit: "بيتحفظ…",
+  cancelEditBtn: "إلغاء التعديل",
+  editingNote: "بتعدّل خدمة موجودة — احفظ عشان التعديلات تتطبق.",
+  walletAddrErr: "عنوان المحفظة مش صحيح — لازم يبدأ بـ G ويكون 56 حرف.",
+  editErrGeneric: "التعديل مكمّلش. حاول تاني.",
+  deleteErrGeneric: "المسح مكمّلش. حاول تاني.",
   actionPublish: "نشر خدمة",
   actionOrder: "طلب الخدمة",
   actionOrders: "إدارة طلباتك",
@@ -581,6 +591,16 @@ const en: Dict = {
   gigPausedState: "Paused",
   pauseBtn: "Pause",
   activateBtn: "Activate",
+  editBtn: "Edit",
+  deleteBtn: "Delete",
+  confirmDeleteBtn: "Sure? Delete it",
+  saveEditBtn: "Save changes",
+  savingEdit: "Saving…",
+  cancelEditBtn: "Cancel editing",
+  editingNote: "Editing an existing gig — save to apply your changes.",
+  walletAddrErr: "Wallet address is invalid — it must start with G and be 56 characters.",
+  editErrGeneric: "The edit didn't complete. Try again.",
+  deleteErrGeneric: "The delete didn't complete. Try again.",
   actionPublish: "Publishing a gig",
   actionOrder: "Ordering this gig",
   actionOrders: "Managing your orders",
@@ -1359,6 +1379,30 @@ export function App() {
     return false;
   }).length;
 
+  // The Sandbox iframe on phones can sit lower than the visible screen, so
+  // a fixed bottom nav ends up below the fold. Measure the hidden strip
+  // via visualViewport and lift the nav exactly above it (12px clearance);
+  // on a normal browser the lift is just 12px.
+  const [navLift, setNavLift] = useState(12);
+  useEffect(() => {
+    const update = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const hidden = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setNavLift(Math.round(hidden) + 12);
+    };
+    update();
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
   function setLang(l: Lang) {
     setLangState(l);
     try {
@@ -1763,7 +1807,8 @@ export function App() {
         {!demo && (
         <nav
           aria-label="Main"
-          className="fixed inset-x-3 bottom-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-lg pb-safe"
+          style={{ bottom: navLift }}
+          className="fixed inset-x-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-lg pb-safe"
         >
           <div className="mx-auto grid max-w-5xl grid-cols-6">
             {(
@@ -2333,6 +2378,17 @@ function SellPanel({
   const [days, setDays] = useState("3");
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [walletAddr, setWalletAddr] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
+
+  // Shared with the Wallet tab / order cards: the seller's saved payout
+  // wallet, used to pre-fill the wallet field when editing a gig.
+  const wallet = useQuery({
+    queryKey: ["wallet", session?.piUid ?? ""],
+    queryFn: () => api.getWallet({ auth: authOf(session!) }),
+    enabled: !!session,
+  });
 
   const myGigs = useQuery({
     queryKey: ["gigs", null, ""],
@@ -2367,6 +2423,89 @@ function SellPanel({
     onError: () => setError(t.statusErrGeneric),
   });
 
+  const updateGig = useMutation({
+    mutationFn: async () => {
+      if (!session) throw new Error(t.needLogin);
+      if (editingId == null) throw new Error(t.editErrGeneric);
+      const nextWallet = walletAddr.trim();
+      if (nextWallet && nextWallet !== (wallet.data?.walletAddress ?? "")) {
+        if (!/^G[A-Z2-7]{55}$/.test(nextWallet)) throw new Error(t.walletAddrErr);
+        await api.setWalletAddress({ auth: authOf(session), walletAddress: nextWallet });
+      }
+      return await api.updateGig({
+        auth: authOf(session),
+        id: editingId,
+        title: title.trim(),
+        description: description.trim(),
+        category,
+        pricePi: Number(price),
+        deliveryDays: Number(days),
+      });
+    },
+    onSuccess: () => {
+      setEditingId(null);
+      setTitle("");
+      setDescription("");
+      setCategory("design");
+      setPrice("");
+      setDays("3");
+      setWalletAddr("");
+      setDone(false);
+      void queryClient.invalidateQueries({ queryKey: ["gigs"] });
+      void queryClient.invalidateQueries({ queryKey: ["stats"] });
+      void queryClient.invalidateQueries({ queryKey: ["wallet", session?.piUid ?? ""] });
+    },
+    onError: (err) =>
+      setError(err instanceof Error && err.message ? err.message : t.editErrGeneric),
+  });
+
+  const deleteGig = useMutation({
+    mutationFn: async (id: number) => {
+      if (!session) throw new Error(t.needLogin);
+      return await api.deleteGig({ auth: authOf(session), id });
+    },
+    onSuccess: () => {
+      setConfirmDeleteId(null);
+      if (editingId != null) cancelEdit();
+      void queryClient.invalidateQueries({ queryKey: ["gigs"] });
+      void queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+    onError: (err) =>
+      setError(err instanceof Error && err.message ? err.message : t.deleteErrGeneric),
+  });
+
+  function startEdit(g: {
+    id: number;
+    title: string;
+    description: string;
+    category: Category;
+    pricePi: number;
+    deliveryDays: number;
+  }) {
+    setEditingId(g.id);
+    setTitle(g.title);
+    setDescription(g.description);
+    setCategory(g.category);
+    setPrice(String(g.pricePi));
+    setDays(String(g.deliveryDays));
+    setWalletAddr(wallet.data?.walletAddress ?? "");
+    setError(null);
+    setDone(false);
+    setConfirmDeleteId(null);
+    document.getElementById("gig-form")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setTitle("");
+    setDescription("");
+    setCategory("design");
+    setPrice("");
+    setDays("3");
+    setWalletAddr("");
+    setError(null);
+  }
+
   function submit(e: FormEvent) {
     e.preventDefault();
     setError(null);
@@ -2377,6 +2516,10 @@ function SellPanel({
     if (!Number.isFinite(p) || p <= 0) return setError(t.sellErrPrice);
     const d = Number(days);
     if (!Number.isInteger(d) || d < 1 || d > 90) return setError(t.sellErrDays);
+    if (editingId != null) {
+      updateGig.mutate();
+      return;
+    }
     createGig.mutate(undefined, {
       onSuccess: () => {
         setDone(true);
@@ -2412,7 +2555,17 @@ function SellPanel({
             </div>
           )}
 
+          {editingId != null && (
+            <p className="mt-4 rounded-xl bg-amber-100 px-4 py-3 text-sm font-semibold text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+              {t.editingNote}{" "}
+              <button type="button" onClick={cancelEdit} className="underline">
+                {t.cancelEditBtn}
+              </button>
+            </p>
+          )}
+
           <form
+            id="gig-form"
             onSubmit={submit}
             className="mt-4 space-y-4 rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-5"
           >
@@ -2495,6 +2648,22 @@ function SellPanel({
                 />
               </div>
             </div>
+            {editingId != null && (
+              <div>
+                <label htmlFor="gig-wallet" className="mb-1 block font-semibold">
+                  {t.payoutWalletTitle}
+                </label>
+                <input
+                  id="gig-wallet"
+                  value={walletAddr}
+                  onChange={(e) => setWalletAddr(e.target.value)}
+                  placeholder={t.payoutWalletPlaceholder}
+                  dir="ltr"
+                  className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 font-mono text-sm"
+                />
+                <p className="mt-1 text-xs text-[var(--dim)]">{t.payoutWalletHint}</p>
+              </div>
+            )}
             {price && Number(price) > 0 && (
               <p className="rounded-xl bg-[var(--surface-alt)] px-4 py-3 text-sm">
                 {t.netPreview(fmtPi(Math.round(Number(price) * 0.9 * 10000) / 10000))}
@@ -2507,10 +2676,16 @@ function SellPanel({
             )}
             <button
               type="submit"
-              disabled={createGig.isPending}
+              disabled={createGig.isPending || updateGig.isPending}
               className="w-full rounded-full bg-[var(--gold)] py-3.5 font-display text-lg font-black text-[#3b1145] disabled:opacity-60"
             >
-              {createGig.isPending ? t.publishing : t.publishBtn}
+              {editingId != null
+                ? updateGig.isPending
+                  ? t.savingEdit
+                  : t.saveEditBtn
+                : createGig.isPending
+                  ? t.publishing
+                  : t.publishBtn}
             </button>
           </form>
         </>
@@ -2536,19 +2711,47 @@ function SellPanel({
                         {g.status === "active" ? t.gigActive : t.gigPausedState}
                       </p>
                     </div>
-                    <button
-                      type="button"
-                      disabled={setStatus.isPending}
-                      onClick={() =>
-                        setStatus.mutate({
-                          id: g.id,
-                          status: g.status === "active" ? "paused" : "active",
-                        })
-                      }
-                      className="rounded-full border border-[var(--border)] px-4 py-2 font-display text-sm font-bold"
-                    >
-                      {g.status === "active" ? t.pauseBtn : t.activateBtn}
-                    </button>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(g)}
+                        className="rounded-full border border-[var(--border)] px-4 py-2 font-display text-sm font-bold"
+                      >
+                        {t.editBtn}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={deleteGig.isPending}
+                        onClick={() => {
+                          if (confirmDeleteId === g.id) {
+                            setError(null);
+                            deleteGig.mutate(g.id);
+                          } else {
+                            setConfirmDeleteId(g.id);
+                          }
+                        }}
+                        className={`rounded-full border px-4 py-2 font-display text-sm font-bold disabled:opacity-60 ${
+                          confirmDeleteId === g.id
+                            ? "border-[var(--danger)] bg-[var(--danger)] text-white"
+                            : "border-[var(--danger)] text-[var(--danger)]"
+                        }`}
+                      >
+                        {confirmDeleteId === g.id ? t.confirmDeleteBtn : t.deleteBtn}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={setStatus.isPending}
+                        onClick={() =>
+                          setStatus.mutate({
+                            id: g.id,
+                            status: g.status === "active" ? "paused" : "active",
+                          })
+                        }
+                        className="rounded-full border border-[var(--border)] px-4 py-2 font-display text-sm font-bold"
+                      >
+                        {g.status === "active" ? t.pauseBtn : t.activateBtn}
+                      </button>
+                    </div>
                   </li>
                 ))}
             </ul>
@@ -5761,6 +5964,28 @@ function DemoMode({ onExit }: { onExit: () => void }) {
     [],
   );
 
+  // Same bottom-nav lift as the real app: the Sandbox iframe on phones can
+  // sit lower than the visible screen.
+  const [navLift, setNavLift] = useState(12);
+  useEffect(() => {
+    const update = () => {
+      const vv = window.visualViewport;
+      if (!vv) return;
+      const hidden = Math.max(0, window.innerHeight - vv.height - vv.offsetTop);
+      setNavLift(Math.round(hidden) + 12);
+    };
+    update();
+    const vv = window.visualViewport;
+    vv?.addEventListener("resize", update);
+    vv?.addEventListener("scroll", update);
+    window.addEventListener("resize", update);
+    return () => {
+      vv?.removeEventListener("resize", update);
+      vv?.removeEventListener("scroll", update);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
   const openGig = (id: number) => {
     setProfileUid(null);
     setGigId(id);
@@ -5927,7 +6152,8 @@ function DemoMode({ onExit }: { onExit: () => void }) {
 
       <nav
         aria-label="Demo"
-        className="fixed inset-x-3 bottom-3 rounded-2xl border-2 border-[var(--gold)] bg-[var(--surface)] shadow-lg pb-safe"
+        className="fixed inset-x-3 rounded-2xl border-2 border-[var(--gold)] bg-[var(--surface)] shadow-lg pb-safe"
+        style={{ bottom: navLift }}
       >
         <div className="mx-auto grid max-w-5xl grid-cols-6">
           {(
