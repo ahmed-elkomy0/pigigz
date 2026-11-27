@@ -393,6 +393,8 @@ const ar = {
   payoutWalletSave: "احفظ العنوان",
   payoutWalletSaved: "اتحفظ عنوان محفظتك ✓",
   payoutWalletMissing: "مش متسجل عنوان محفظة — الدفعات مش هتوصلك من غيره.",
+  deliverNeedsWallet:
+    "احفظ عنوان محفظتك من تبويب المحفظة الأول عشان تقدر تسلّم — من غيره الدفعة مش هتوصلك.",
   /* Explore map */
   mapTitle: "استكشف العالم",
   mapSubtitle:
@@ -754,6 +756,8 @@ const en: Dict = {
   payoutWalletSave: "Save address",
   payoutWalletSaved: "Your wallet address was saved ✓",
   payoutWalletMissing: "No wallet address saved — payouts can't reach you without it.",
+  deliverNeedsWallet:
+    "Save your wallet address in the Wallet tab first so you can deliver — without it the payout can't reach you.",
   mapTitle: "Explore the world",
   mapSubtitle:
     "Spin the 3D globe with your hand, zoom in and out, and tap any numbered pin to see the gig, the freelancer and its Pi price — or switch to the flat map anytime. Pins are gigs from freelancers who picked their own city on their profile.",
@@ -1759,7 +1763,7 @@ export function App() {
         {!demo && (
         <nav
           aria-label="Main"
-          className="fixed inset-x-0 bottom-0 border-t border-[var(--border)] bg-[var(--surface)] pb-safe"
+          className="fixed inset-x-3 bottom-3 rounded-2xl border border-[var(--border)] bg-[var(--surface)] shadow-lg pb-safe"
         >
           <div className="mx-auto grid max-w-5xl grid-cols-6">
             {(
@@ -3340,6 +3344,15 @@ function OrderCard({
     (order.buyerPiUid === uid || order.sellerPiUid === uid || isLegacy);
   const [deliveryNote, setDeliveryNote] = useState("");
   const [showDeliver, setShowDeliver] = useState(false);
+  // The seller cannot confirm delivery without a payout wallet on file
+  // (the server enforces it too); share the Wallet tab's cached query.
+  const wallet = useQuery({
+    queryKey: ["wallet", session?.piUid ?? ""],
+    queryFn: () => api.getWallet({ auth: authOf(session!) }),
+    enabled: !!session && isSeller,
+  });
+  const walletKnown = !wallet.isPending;
+  const hasWallet = !!wallet.data?.walletAddress;
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -3520,6 +3533,8 @@ function OrderCard({
         <div className="mt-4">
           {!session ? (
             <p className="text-sm text-[var(--dim)]">{t.loginToAct}</p>
+          ) : isSeller && !isBuyer && walletKnown && !hasWallet ? (
+            <p className="text-sm font-bold text-red-600">{t.deliverNeedsWallet}</p>
           ) : showDeliver && isSeller ? (
             <div className="space-y-2">
               <label htmlFor={`deliver-note-${order.id}`} className="block font-semibold">
@@ -5912,7 +5927,7 @@ function DemoMode({ onExit }: { onExit: () => void }) {
 
       <nav
         aria-label="Demo"
-        className="fixed inset-x-0 bottom-0 border-t-2 border-[var(--gold)] bg-[var(--surface)] pb-safe"
+        className="fixed inset-x-3 bottom-3 rounded-2xl border-2 border-[var(--gold)] bg-[var(--surface)] shadow-lg pb-safe"
       >
         <div className="mx-auto grid max-w-5xl grid-cols-6">
           {(

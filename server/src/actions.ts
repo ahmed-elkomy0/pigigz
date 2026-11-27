@@ -820,6 +820,19 @@ export const Actions = {
         throw new Error("التسليم بيتم من حساب الفريلانسر صاحب الخدمة بس");
       if (order.status !== "awaiting_delivery")
         throw new Error("الطلب ده اتسلّم أو اتقفل قبل كده");
+      // A freelancer cannot confirm delivery until their payout wallet is on
+      // file — otherwise the buyer approves and the payout fails with no
+      // destination address (seen 2026-11-26; again on the Test2 order
+      // 2026-11-27: delivery was accepted with no seller wallet saved).
+      const sellerRows = await db
+        .select()
+        .from(schema.users)
+        .where(eq(schema.users.id, user.id))
+        .limit(1);
+      if (!sellerRows[0]?.walletAddress)
+        throw new Error(
+          "لازم تحفظ عنوان محفظتك الأول من تبويب المحفظة عشان تقدر تسلّم الشغل",
+        );
       await db
         .update(schema.orders)
         .set({ status: "delivered", deliveryNote: args.deliveryNote, deliveredAt: new Date() })
